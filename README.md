@@ -2,7 +2,7 @@
 
 This repo contains the code of our ICLR'21 paper, "Domain Generalization with MixStyle".
 
-The OpenReview link is https://openreview.net/forum?id=6xHJ37MVxxp.
+We have a medium [blog](https://medium.com/@mohit_gaikwad/review-mix-style-neural-networks-for-domain-generalization-and-adaptation-2207ece76707) reviewing the Mix-Style technique. 
 
 Compared to the original [repo](https://github.com/KaiyangZhou/mixstyle-release), this implementation is only for **reid**. The changes are mentiioned below.     
 
@@ -130,7 +130,7 @@ def forward(self, x):
 
 In our paper, we have demonstrated the effectiveness of MixStyle on three tasks: image classification, person re-identification, and reinforcement learning. The source code for reproducing all experiments can be found in `mixstyle-release/imcls`, `mixstyle-release/reid`, and `mixstyle-release/rl`, respectively.
 
-**Changes made in this repo:** There is feature fusion performed, as compared to normal feature extraction from images. The idea has been taken from this AICIty 2020 Challenge [repo](https://github.com/layumi/AICIty-reID-2020/blob/677f3e46a8bd46a349b303a9497397c7e4e315a0/pytorch/test_2020.py#L191). The code changes made for feature extraction are as below:
+**Changes made in this repo:** There is feature fusion performed, as compared to normal feature extraction from images. The idea has been taken from this AICIty 2020 Challenge [repo](https://github.com/layumi/AICIty-reID-2020/blob/677f3e46a8bd46a349b303a9497397c7e4e315a0/pytorch/test_2020.py#L191). The code changes made for feature extraction are as below, this block has to be replaced with [this](https://github.com/KaiyangZhou/deep-person-reid/blob/566a56a2cb255f59ba75aa817032621784df546a/torchreid/engine/engine.py#L361) function in the `torchreid` framework, i.e the `_evaluate` function and then perform the `torchreid` framework setup.
 
 ```python
 def _feature_extraction(dataloader):
@@ -172,12 +172,21 @@ def _feature_extraction(dataloader):
 The improved results have been mentioned in the table below:
 
 
+| Model          |          | Original ||||Fine-tuned|||  
+|----------------|----------|--------|--------|---------|------|------|---|-|
+|ResNet50 Vanilla| **mAP**  | **R1** | **R5** | **R10** | **mAP** | **R1** | **R5** | **R10** |
+|                |   19.3   | 35.4   |50.3    |56.4     |  20.8   | 38.1   | | |
+|ResNet50 (mix-style)| **mAP**  | **R1** | **R5** | **R10** | **mAP** | **R1** | **R5** | **R10** |
+|                |   23.8   | 42.2   |58.8    |64.8     |      
 
-*Takeaways* on how to apply MixStyle to your tasks:
+
+**Takeaways** on how to apply MixStyle to your tasks:
 - Applying MixStyle to multiple lower layers is recommended (e.g., insert MixStyle after `res1` and `res2` in ResNets).
 - Do not apply MixStyle to the last layer that is the closest to the prediction layer.
 - Different tasks might favor different combinations.
 - If you want to use the same configuration for all tasks/datasets for fair comparison, we suggest adding MixStyle to two consecutive layers, such as `res1` and `res2` in ResNets.
+
+**To be done:** More experiments with feature fusion. 
 
 For more analytical studies, please read our paper at https://openreview.net/forum?id=6xHJ37MVxxp.
 
