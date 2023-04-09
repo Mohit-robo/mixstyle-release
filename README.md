@@ -4,13 +4,9 @@ This repo contains the code of our ICLR'21 paper, "Domain Generalization with Mi
 
 The OpenReview link is https://openreview.net/forum?id=6xHJ37MVxxp.
 
+Compared to the original [repo](https://github.com/KaiyangZhou/mixstyle-release), this implementation is only for **reid**. The changes are mentiioned below.     
+
 **########## Updates ############**
-
-**[06-10-2022]** New paper "[On-Device Domain Generalization](https://arxiv.org/abs/2209.07521)" is out! Code, models and datasets: https://github.com/KaiyangZhou/on-device-dg.
-
-**[12-10-2021]** Please note that the latest version for Dassl is `v0.5.0` (the changes might affect the performance if the original images are not square). See [this](https://github.com/KaiyangZhou/Dassl.pytorch#whats-new) for more details.
-
-**[06-07-2021]** Extension of our ICLR'21 paper is out: [MixStyle Neural Networks for Domain Generalization and Adaptation](https://arxiv.org/abs/2107.02053). This work extends the conference version mainly in the following ways: 1) A simple algorithmic extension enabling MixStyle to cope with unlabeled data; 2) New evidence showing that MixStyle works exceptionally well with extremely limited labels; 3) New experiments covering semi-supervised domain generalization and unsupervised domain adaptation. Code for reproducing the new experiments is available at `imcls/`.
 
 **[28-06-2021]** A new implementation of MixStyle is out, which merges `MixStyle2` to `MixStyle` and switches between random and cross-domain mixing using `self.mix`. The new features can be found [here](https://github.com/KaiyangZhou/Dassl.pytorch/issues/23).
 
@@ -31,8 +27,6 @@ def activate_mixstyle(m):
 model.apply(activate_mixstyle)
 ```
 Note that `MixStyle` has been included in [Dassl.pytorch](https://github.com/KaiyangZhou/Dassl.pytorch). See [the code](https://github.com/KaiyangZhou/Dassl.pytorch/blob/master/dassl/modeling/backbone/resnet.py#L280) for details.
-
-**[05-03-2021]** You might also be interested in our recently released survey on domain generalization at https://arxiv.org/abs/2103.02503, which summarizes the ten-year development in domain generalization, with coverage on the history, datasets, related problems, methodologies, potential directions, and so on.
 
 **##############################**
 
@@ -136,6 +130,49 @@ def forward(self, x):
 
 In our paper, we have demonstrated the effectiveness of MixStyle on three tasks: image classification, person re-identification, and reinforcement learning. The source code for reproducing all experiments can be found in `mixstyle-release/imcls`, `mixstyle-release/reid`, and `mixstyle-release/rl`, respectively.
 
+**Changes made in this repo:** There is feature fusion performed, as compared to normal feature extraction from images. The idea has been taken from this AICIty 2020 Challenge [repo](https://github.com/layumi/AICIty-reID-2020/blob/677f3e46a8bd46a349b303a9497397c7e4e315a0/pytorch/test_2020.py#L191). The code changes made for feature extraction are as below:
+
+```python
+def _feature_extraction(dataloader):
+    
+    features = torch.FloatTensor()
+    pids_, camids_ = [], []
+
+    for batch_idx, data in enumerate(dataloader):
+        
+        imgs, pids, camids = self.parse_data_for_eval(data)
+        n, c, h, w = imgs.size()
+        
+        end = time.time()
+        batch_time.update(time.time() - end)
+        
+        pids_.extend(pids.tolist())
+        camids_.extend(camids.tolist())
+
+        ff = torch.FloatTensor(n,2048).zero_().cuda()
+
+        for i in range(2):
+            if(i==1):
+                imgs = fliplr(imgs)                
+            
+            outputs = self.extract_features(imgs.cuda())
+            
+            ff += outputs
+        # norm feature
+        fnorm = torch.norm(ff, p=2, dim=1, keepdim=True)
+        ff = ff.div(fnorm.expand_as(ff))
+        
+        features = torch.cat((features,ff.data.cpu().float()), 0)
+    pids_ = np.asarray(pids_)
+    camids_ = np.asarray(camids_)
+
+    return features, pids_, camids_
+```
+
+The improved results have been mentioned in the table below:
+
+
+
 *Takeaways* on how to apply MixStyle to your tasks:
 - Applying MixStyle to multiple lower layers is recommended (e.g., insert MixStyle after `res1` and `res2` in ResNets).
 - Do not apply MixStyle to the last layer that is the closest to the prediction layer.
@@ -146,7 +183,7 @@ For more analytical studies, please read our paper at https://openreview.net/for
 
 Please also read the extended paper at https://arxiv.org/abs/2107.02053 for a more comprenehsive picture of MixStyle.
 
-To cite MixStyle in your publications, please use the following bibtex entry
+**Citations**
 
 ```
 @inproceedings{zhou2021mixstyle,
@@ -161,5 +198,13 @@ To cite MixStyle in your publications, please use the following bibtex entry
   author={Zhou, Kaiyang and Yang, Yongxin and Qiao, Yu and Xiang, Tao},
   journal={arXiv:2107.02053},
   year={2021}
+}
+
+@inproceedings{zheng2020going,
+  title={Going beyond real data: A robust visual representation for vehicle re-identification},
+  author={Zheng, Zhedong and Jiang, Minyue and Wang, Zhigang and Wang, Jian and Bai, Zechen and Zhang, Xuanmeng and Yu, Xin and Tan, Xiao and Yang, Yi and Wen, Shilei and others},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops},
+  pages={598--599},
+  year={2020}
 }
 ```
